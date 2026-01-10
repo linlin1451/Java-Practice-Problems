@@ -1,0 +1,142 @@
+import java.util.Scanner;
+
+// User class
+class User {
+    private String username;
+    private String password;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    // Getters and setters
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+}
+
+// Client class
+class Client extends User {
+    public Client(String username, String password) {
+        super(username, password);
+    }
+}
+
+// Visitor class
+class Visitor extends User {
+    public Visitor(String username, String password) {
+        super(username, password);
+    }
+}
+
+// UserDAO interface
+interface UserDAO {
+    void addUser(User user);
+    User login(String username, String password);
+}
+
+// UserDAO implementation
+class UserDAOImpl implements UserDAO {
+    private static final int MAX_USERS = 10;
+    private User[] users = new User[MAX_USERS];
+    private int userCount = 0;
+
+    @Override
+    public void addUser(User user) {
+        if (userCount < MAX_USERS) {
+            users[userCount++] = user;
+            System.out.println("User added successfully.");
+        } else {
+            System.out.println("User list is full.");
+        }
+    }
+
+    @Override
+    public User login(String username, String password) {
+        for (int i = 0; i < userCount; i++) {
+            if (users[i].getUsername().equals(username) && users[i].getPassword().equals(password)) {
+                return users[i];
+            }
+        }
+        System.out.println("Invalid username or password.");
+        return null;
+    }
+}
+
+// TaskDAO interface
+interface TaskDAO {
+    void addTask(Task task);
+    void updateTask(int taskId, Task newTask);
+    void deleteTask(int taskId);
+    Task searchTask(int taskId);
+}
+
+// TaskDAO implementation
+class TaskDAOImpl implements TaskDAO {
+    private static final int MAX_TASKS = 10;
+    private Task[] tasks = new Task[MAX_TASKS];
+    private int taskCount = 0;
+
+    @Override
+    public void addTask(Task task) {
+        if (taskCount < MAX_TASKS) {
+            tasks[taskCount++] = task;
+            System.out.println("Task added successfully.");
+        } else {
+            System.out.println("Task list is full.");
+        }
+    }
+
+    @Override
+    public void updateTask(int taskId, Task newTask) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                tasks[i] = newTask;
+                System.out.println("Task updated successfully.");
+                return;
+            }
+        }
+        System.out.println("Task not found.");
+    }
+
+    @Override
+    public void deleteTask(int taskId) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                for (int j = i; j < taskCount - 1; j++) {
+                    tasks[j] = tasks[j + 1];
+                }
+                tasks[--taskCount] = null;
+                System.out.println("Task deleted successfully.");
+                return;
+            }
+        }
+        System.out.println("Task not found.");
+    }
+
+    @Override
+    public Task searchTask(int taskId) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                return tasks[i];
+            }
+        }
+        System.out.println("Task not found.");
+        return null;
+    }
+}
+
+// Task class
+class Task {
+    private int taskId;
+    private String taskTitle;
+    private String taskText;
+    private String assignedTo;
+
+    public Task(int taskId, String taskTitle, String taskText, String assignedTo) {
+        this

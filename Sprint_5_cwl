@@ -1,0 +1,440 @@
+// Sprint 5
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
+
+// Custom exceptions
+class ClientException extends Exception {
+    public ClientException(String message) {
+        super(message);
+    }
+}
+
+class VisitorException extends Exception {
+    public VisitorException(String message) {
+        super(message);
+    }
+}
+
+// User class
+class User {
+    private String username;
+    private String password;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+}
+
+// Client class
+class Client extends User {
+    public Client(String username, String password) {
+        super(username, password);
+    }
+}
+
+// Visitor class
+class Visitor extends User {
+    public Visitor(String username, String password) {
+        super(username, password);
+    }
+
+    public void markTaskAsCompleted(Task task, TaskDAO taskDAO) {
+        task.setCompletionDate(LocalDate.now());
+        taskDAO.updateTask(task.getTaskId(), task);
+    }
+}
+
+// Task class
+class Task {
+    private int taskId;
+    private String taskTitle;
+    private String taskText;
+    private String assignedTo;
+    private LocalDate completionDate;
+
+    public Task(int taskId, String taskTitle, String taskText, String assignedTo, LocalDate completionDate) {
+        this.taskId = taskId;
+        this.taskTitle = taskTitle;
+        this.taskText = taskText;
+        this.assignedTo = assignedTo;
+        this.completionDate = completionDate;
+    }
+
+    public int getTaskId() {
+        return taskId;
+    }
+
+    public String getTaskTitle() {
+        return taskTitle;
+    }
+
+    public String getTaskText() {
+        return taskText;
+    }
+
+    public String getAssignedTo() {
+        return assignedTo;
+    }
+
+    public LocalDate getCompletionDate() {
+        return completionDate;
+    }
+
+    public void setTaskTitle(String taskTitle) {
+        this.taskTitle = taskTitle;
+    }
+
+    public void setTaskText(String taskText) {
+        this.taskText = taskText;
+    }
+
+    public void setAssignedTo(String assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public void setCompletionDate(LocalDate completionDate) {
+        this.completionDate = completionDate;
+    }
+}
+
+// UserDAO interface
+interface UserDAO {
+    void addUser(User user);
+    User login(String username, String password);
+}
+
+// UserDAO implementation
+class UserDAOImpl implements UserDAO {
+    private static final int MAX_USERS = 10;
+    private User[] users = new User[MAX_USERS];
+    private int userCount = 0;
+
+    @Override
+    public void addUser(User user) {
+        if (userCount < MAX_USERS) {
+            users[userCount++] = user;
+            System.out.println("User added successfully.");
+        } else {
+            throw new RuntimeException("User list is full.");
+        }
+    }
+
+    @Override
+    public User login(String username, String password) {
+        for (int i = 0; i < userCount; i++) {
+            if (users[i].getUsername().equals(username) && users[i].getPassword().equals(password)) {
+                return users[i];
+            }
+        }
+        throw new RuntimeException("Invalid username or password.");
+    }
+}
+
+// TaskDAO interface
+interface TaskDAO {
+    void addTask(Task task);
+    void updateTask(int taskId, Task newTask);
+    void deleteTask(int taskId);
+    Task searchTask(int taskId);
+    Task[] sortTasksByDate(boolean ascending);
+}
+
+// TaskDAO implementation
+class TaskDAOImpl implements TaskDAO {
+    private static final int MAX_TASKS = 10;
+    private Task[] tasks = new Task[MAX_TASKS];
+    private int taskCount = 0;
+
+    @Override
+    public void addTask(Task task) {
+        if (taskCount < MAX_TASKS) {
+            tasks[taskCount++] = task;
+            System.out.println("Task added successfully.");
+        } else {
+            throw new RuntimeException("Task list is full.");
+        }
+    }
+
+    @Override
+    public void updateTask(int taskId, Task newTask) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                tasks[i] = newTask;
+                System.out.println("Task updated successfully.");
+                return;
+            }
+        }
+        throw new RuntimeException("Task not found.");
+    }
+
+    @Override
+    public void deleteTask(int taskId) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                for (int j = i; j < taskCount - 1; j++) {
+                    tasks[j] = tasks[j + 1];
+                }
+                tasks[--taskCount] = null;
+                System.out.println("Task deleted successfully.");
+                return;
+            }
+        }
+        throw new RuntimeException("Task not found.");
+    }
+
+    @Override
+    public Task searchTask(int taskId) {
+        for (int i = 0; i < taskCount; i++) {
+            if (tasks[i].getTaskId() == taskId) {
+                return tasks[i];
+            }
+        }
+        throw new RuntimeException("Task not found.");
+    }
+
+    @Override
+    public Task[] sortTasksByDate(boolean ascending) {
+        Task[] nonNullTasks = new Task[taskCount];
+        System.arraycopy(tasks, 0, nonNullTasks, 0, taskCount);
+        if (ascending) {
+            Arrays.sort(nonNullTasks, Comparator.comparing(Task::getCompletionDate));
+        } else {
+            Arrays.sort(nonNullTasks, Comparator.comparing(Task::getCompletionDate).reversed());
+        }
+        return nonNullTasks;
+    }
+}
+
+// VisitorDAO class
+class VisitorDAO {
+    private List<Task> tasks;
+
+    public VisitorDAO() {
+        tasks = new ArrayList<>();
+    }
+
+    public List<Task> getTasksAssignedToVisitor(String visitorName) {
+        List<Task> assignedTasks = new ArrayList<>();
+        for (Task task : tasks) {
+            if (task.getAssignedTo().equals(visitorName)) {
+                assignedTasks.add(task);
+            }
+        }
+        return assignedTasks;
+    }
+
+    public List<Task> getCompletedTasks(String visitorName) {
+        List<Task> completedTasks = new ArrayList<>();
+        for (Task task : tasks) {
+            if (task.getAssignedTo().equals(visitorName) && task.getCompletionDate()!= null) {
+                completedTasks.add(task);
+            }
+        }
+        return completedTasks;
+    }
+
+    public List<Task> getIncompleteTasks(String visitorName) {
+        List<Task> incompleteTasks = new ArrayList<>();
+        for (Task task : tasks) {
+            if (task.getAssignedTo().equals(visitorName) && task.getCompletionDate() == null) {
+                incompleteTasks.add(task);
+            }
+        }
+        return incompleteTasks;
+    }
+}
+
+public class TodoManager {
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        UserDAO userDAO = new UserDAOImpl();
+        TaskDAO taskDAO = new TaskDAOImpl();
+        VisitorDAO visitorDAO = new VisitorDAO();
+
+        while (true) {
+            System.out.println("1. Register");
+            System.out.println("2. Login");
+            System.out.println("3. Add Task (Client)");
+            System.out.println("4. Update Task (Client)");
+            System.out.println("5. Delete Task (Client)");
+            System.out.println("6. Search Task (Client)");
+            System.out.println("7. Assign Task to Visitor (Client)");
+            System.out.println("8. Assign Completion Date to Task (Client)");
+            System.out.println("9. Arrange Tasks by Date (Client/Visitor)");
+            System.out.println("10. Mark Task as Completed (Visitor)");
+            System.out.println("11. See Completed Tasks (Visitor)");
+            System.out.println("12. See Incomplete Tasks (Visitor)");
+            System.out.println("0. Exit");
+            System.out.print("Enter your choice: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            try {
+                switch (choice) {
+                    case 1:
+                        System.out.print("Enter username: ");
+                        String regUsername = scanner.nextLine();
+                        System.out.print("Enter password: ");
+                        String regPassword = scanner.nextLine();
+                        System.out.print("Enter user type (client/visitor): ");
+                        String userType = scanner.nextLine();
+                        if ("client".equalsIgnoreCase(userType)) {
+                            userDAO.addUser(new Client(regUsername, regPassword));
+                        } else if ("visitor".equalsIgnoreCase(userType)) {
+                            userDAO.addUser(new Visitor(regUsername, regPassword));
+                        } else {
+                            System.out.println("Invalid user type.");
+                        }
+                        break;
+                    case 2:
+                        System.out.print("Enter username: ");
+                        String loginUsername = scanner.nextLine();
+                        System.out.print("Enter password: ");
+                        String loginPassword = scanner.nextLine();
+                        User loggedInUser = userDAO.login(loginUsername, loginPassword);
+                        if (loggedInUser instanceof Client) {
+                            System.out.println("Client logged in.");
+                        } else if (loggedInUser instanceof Visitor) {
+                            System.out.println("Visitor logged in.");
+                        }
+                        break;
+                    case 3:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can add tasks.");
+                        }
+                        System.out.print("Enter task title: ");
+                        String title = scanner.nextLine();
+                        System.out.print("Enter task text: ");
+                        String text = scanner.nextLine();
+                        System.out.print("Enter assigned to (visitor's username): ");
+                        String assignedTo = scanner.nextLine();
+                        System.out.print("Enter completion date (yyyy - mm - dd): ");
+                        LocalDate completionDate = LocalDate.parse(scanner.nextLine());
+                        int newTaskId = taskDAO.taskCount + 1;
+                        taskDAO.addTask(new Task(newTaskId, title, text, assignedTo, completionDate));
+                        break;
+                    case 4:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can update tasks.");
+                        }
+                        System.out.print("Enter task id to update: ");
+                        int updateTaskId = scanner.nextInt();
+                        scanner.nextLine();
+                        System.out.print("Enter new task title: ");
+                        String newTitle = scanner.nextLine();
+                        System.out.print("Enter new task text: ");
+                        String newText = scanner.nextLine();
+                        System.out.print("Enter new assigned to (visitor's username): ");
+                        String newAssignedTo = scanner.nextLine();
+                        System.out.print("Enter new completion date (yyyy - mm - dd): ");
+                        LocalDate newCompletionDate = LocalDate.parse(scanner.nextLine());
+                        taskDAO.updateTask(updateTaskId, new Task(updateTaskId, newTitle, newText, newAssignedTo, newCompletionDate));
+                        break;
+                    case 5:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can delete tasks.");
+                        }
+                        System.out.print("Enter task id to delete: ");
+                        int deleteTaskId = scanner.nextInt();
+                        taskDAO.deleteTask(deleteTaskId);
+                        break;
+                    case 6:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can search tasks.");
+                        }
+                        System.out.print("Enter task id to search: ");
+                        int searchTaskId = scanner.nextInt();
+                        Task searchedTask = taskDAO.searchTask(searchTaskId);
+                        System.out.println("Task found: " + searchedTask.getTaskTitle());
+                        break;
+                    case 7:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can assign tasks to visitors.");
+                        }
+                        System.out.print("Enter task id to assign: ");
+                        int assignTaskId = scanner.nextInt();
+                        scanner.nextLine();
+                        System.out.print("Enter visitor's username to assign to: ");
+                        String assignToVisitor = scanner.nextLine();
+                        Task taskToAssign = taskDAO.searchTask(assignTaskId);
+                        taskToAssign.setAssignedTo(assignToVisitor);
+                        taskDAO.updateTask(assignTaskId, taskToAssign);
+                        break;
+                    case 8:
+                        if (!(loggedInUser instanceof Client)) {
+                            throw new ClientException("Only clients can assign completion dates.");
+                        }
+                        System.out.print("Enter task id to assign completion date: ");
+                        int dateTaskId = scanner.nextInt();
+                        scanner.nextLine();
+                        System.out.print("Enter completion date (yyyy - mm - dd): ");
+                        LocalDate assignCompletionDate = LocalDate.parse(scanner.nextLine());
+                        Task taskForDate = taskDAO.searchTask(dateTaskId);
+                        taskForDate.setCompletionDate(assignCompletionDate);
+                        taskDAO.updateTask(dateTaskId, taskForDate);
+                        break;
+                    case 9:
+                        System.out.print("Enter 'asc' for ascending or 'desc' for descending: ");
+                        String order = scanner.nextLine();
+                        boolean ascending = "asc".equalsIgnoreCase(order);
+                        Task[] sortedTasks = taskDAO.sortTasksByDate(ascending);
+                        for (Task task : sortedTasks) {
+                            System.out.println("Task: " + task.getTaskTitle() + ", Date: " + task.getCompletionDate());
+                        }
+                        break;
+                    case 10:
+                        if (!(loggedInUser instanceof Visitor)) {
+                            throw new VisitorException("Only visitors can mark tasks as completed.");
+                        }
+                        System.out.print("Enter task id to mark as completed: ");
+                        int completeTaskId = scanner.nextInt();
+                        scanner.nextLine();
+                        Task taskToComplete = taskDAO.searchTask(completeTaskId);
+                        Visitor visitor = (Visitor) loggedInUser;
+                        visitor.markTaskAsCompleted(taskToComplete, taskDAO);
+                        break;
+                    case 11:
+                        if (!(loggedInUser instanceof Visitor)) {
+                            throw new VisitorException("Only visitors can view completed tasks.");
+                        }
+                        Visitor loggedInVisitor = (Visitor) loggedInUser;
+                        List<Task> completedTasks = visitorDAO.getCompletedTasks(loggedInVisitor.getUsername());
+                        for (Task task : completedTasks) {
+                            System.out.println("Completed Task: " + task.getTaskTitle());
+                        }
+                        break;
+                    case 12:
+                        if (!(loggedInUser instanceof Visitor)) {
+                            throw new VisitorException("Only visitors can view incomplete tasks.");
+                        }
+                        List<Task> incompleteTasks = visitorDAO.getIncompleteTasks(loggedInVisitor.getUsername());
+                        for (Task task : incompleteTasks) {
+                            System.out.println("Incomplete Task: " + task.getTaskTitle());
+                        }
+                        break;
+                    case 0:
+                        scanner.close();
+                        System.exit(0);
+                    default:
+                        System.out.println("Invalid choice. Please try again.");
+                }
+            } catch (Exception e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+        }
+    }
+}
